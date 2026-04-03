@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
 
 import { useAuth } from "@/contexts/auth-context";
 
@@ -19,6 +20,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"login" | "register">("login");
   const { signIn, signUp } = useAuth();
+  const router = useRouter();
 
   const isRegisterMode = mode === "register";
 
@@ -40,6 +42,8 @@ export default function LoginScreen() {
       } else {
         await signIn({ email: email.trim(), password });
       }
+
+      router.replace("/home");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao autenticar";
       Alert.alert(isRegisterMode ? "Erro no cadastro" : "Erro no login", message);

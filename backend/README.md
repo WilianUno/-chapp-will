@@ -23,16 +23,17 @@ Backend inicial para autenticação com PostgreSQL + Prisma + JWT.
 1. Copie `backend/.env.example` para `backend/.env`.
 2. Gere um `JWT_SECRET` forte. Exemplo:
    - `openssl rand -hex 32`
-2. Suba o banco:
+3. Configure `FOOTBALL_DATA_TOKEN` com sua chave da `football-data.org`.
+4. Suba o banco:
    - `cd backend`
    - `docker compose up -d`
-3. Instale dependências:
+5. Instale dependências:
    - `npm install`
-4. Gere client Prisma:
+6. Gere client Prisma:
    - `npm run prisma:generate`
-5. Crie esquema no banco:
+7. Crie esquema no banco:
    - `npm run prisma:push`
-6. Inicie API:
+8. Inicie API:
    - `npm run dev`
 
 API local padrão: `http://localhost:3333`
@@ -49,6 +50,24 @@ Depois use o valor gerado em `backend/.env`:
 
 ```env
 JWT_SECRET="seu-valor-gerado"
+```
+
+## Integração de jogos
+
+O endpoint `GET /jogos/overview` usa `football-data.org` para retornar:
+
+- partidas anteriores da Chapecoense
+- partidas em andamento da Chapecoense, observando que o plano free pode entregar placares com atraso
+- próximas partidas da Chapecoense
+- tabela da Série A
+
+Variáveis usadas:
+
+```env
+FOOTBALL_DATA_BASE_URL="https://api.football-data.org/v4"
+FOOTBALL_DATA_TOKEN="seu-token-do-football-data"
+FOOTBALL_DATA_COMPETITION_CODE="BSA"
+FOOTBALL_DATA_TEAM_NAME="Chapecoense"
 ```
 
 ## Contrato de resposta (auth)

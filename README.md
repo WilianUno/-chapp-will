@@ -36,14 +36,15 @@ openssl rand -hex 32
 ```
 
 4. Coloque o valor em `backend/.env`
-5. Suba o banco:
+5. Configure `FOOTBALL_DATA_TOKEN` em `backend/.env` com sua chave da `football-data.org`
+6. Suba o banco:
 
 ```bash
 cd backend
 docker compose up -d
 ```
 
-6. Instale dependências e prepare o Prisma:
+7. Instale dependências e prepare o Prisma:
 
 ```bash
 npm install
@@ -51,7 +52,7 @@ npm run prisma:generate
 npm run prisma:push
 ```
 
-7. Inicie a API:
+8. Inicie a API:
 
 ```bash
 npm run dev
@@ -156,3 +157,23 @@ npm run prisma:push
 
 - [Plano de Finalização](/home/wilian/Documents/-chapp/docs/PLANO_FINALIZACAO.md)
 - [README do Backend](/home/wilian/Documents/-chapp/backend/README.md)
+
+## Jogos da Chape
+
+`GET /jogos/overview` agora busca dados reais da `football-data.org` no backend.
+
+Variáveis relevantes em `backend/.env`:
+
+```env
+FOOTBALL_DATA_BASE_URL=https://api.football-data.org/v4
+FOOTBALL_DATA_TOKEN=seu-token
+FOOTBALL_DATA_COMPETITION_CODE=BSA
+FOOTBALL_DATA_TEAM_NAME=Chapecoense
+```
+
+Defaults usados pelo projeto:
+
+- `FOOTBALL_DATA_COMPETITION_CODE=BSA` para Série A
+- `FOOTBALL_DATA_TEAM_NAME=Chapecoense`
+
+No plano free do `football-data.org`, os jogos em andamento podem ter atraso nos placares. Ainda assim, o backend retorna últimos jogos, próximos jogos e tabela reais da competição.

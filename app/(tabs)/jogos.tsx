@@ -14,7 +14,9 @@ import {
 
 import { useAuth } from "@/contexts/auth-context";
 import { getJogosOverview } from "@/services/jogos.service";
-import type { JogosOverview, StandingForm } from "@/types/jogos";
+import type { FeaturedMatch, JogosOverview, StandingForm } from "@/types/jogos";
+
+const CHAPE_BADGE = require("../../assets/images/chape_simbolo.jpg");
 
 export default function JogosScreen() {
   const { user } = useAuth();
@@ -55,6 +57,51 @@ export default function JogosScreen() {
       return <MaterialIcons name="arrow-drop-down" size={16} color="#dc6d6d" />;
     }
     return <MaterialIcons name="remove" size={14} color="#9aa39a" />;
+  }
+
+  function isChapeTeam(teamName: string) {
+    const normalized = teamName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    return normalized.includes("chapecoense") || normalized.includes("chape");
+  }
+
+  function getMatchVariant(match: FeaturedMatch) {
+    const normalizedStatus = match.status.toLowerCase();
+
+    if (normalizedStatus.includes("ao vivo")) {
+      return "live";
+    }
+
+    if (normalizedStatus.includes("encerrado")) {
+      return "finished";
+    }
+
+    return "upcoming";
+  }
+
+  function getMatchBadge(match: FeaturedMatch, index: number) {
+    const variant = getMatchVariant(match);
+
+    if (variant === "live") {
+      return "Ao vivo";
+    }
+
+    if (variant === "finished") {
+      return index === 0 ? "Último jogo" : "Encerrado";
+    }
+
+    return index === 0 ? "Próximo jogo" : "Na sequência";
+  }
+
+  function renderTeamBadge(teamName: string) {
+    if (isChapeTeam(teamName)) {
+      return <Image source={CHAPE_BADGE} style={styles.teamLogo} />;
+    }
+
+    return (
+      <View style={styles.opponentBadge}>
+        <MaterialIcons name="sports-soccer" size={14} color="#566056" />
+      </View>
+    );
   }
 
   const featuredMatches = data?.featuredMatches ?? [];
@@ -101,28 +148,51 @@ export default function JogosScreen() {
           {!loading && !errorMessage ? (
             <>
               <View style={styles.scoresRow}>
-                {featuredMatches.map((match) => (
-                  <View key={match.id} style={styles.scoreCard}>
-                    <View style={styles.matchMeta}>
-                      <Text style={styles.matchStatus}>{match.status}</Text>
-                      <Text style={styles.matchTime}>{match.matchTime}</Text>
-                    </View>
-                    <View style={styles.scoreLine}>
-                      <View style={styles.teamBlock}>
-                        <Image source={require("../../assets/images/chape_simbolo.jpg")} style={styles.teamLogo} />
-                        <Text style={styles.teamName}>{match.homeTeam}</Text>
+                {featuredMatches.length ? (
+                  featuredMatches.map((match, index) => {
+                    const variant = getMatchVariant(match);
+
+                    return (
+                      <View
+                        key={match.id}
+                        style={[
+                          styles.scoreCard,
+                          variant === "live" && styles.scoreCardLive,
+                          variant === "upcoming" && styles.scoreCardUpcoming,
+                        ]}
+                      >
+                        <View style={styles.matchMeta}>
+                          <View style={[styles.matchBadge, variant === "live" && styles.matchBadgeLive]}>
+                            <Text style={[styles.matchBadgeText, variant === "live" && styles.matchBadgeTextLive]}>
+                              {getMatchBadge(match, index)}
+                            </Text>
+                          </View>
+                          <Text style={styles.matchTime}>{match.matchTime}</Text>
+                        </View>
+                        <Text style={styles.matchStatus}>{match.status}</Text>
+                        <View style={styles.scoreLine}>
+                          <View style={styles.teamBlock}>
+                            {renderTeamBadge(match.homeTeam)}
+                            <Text style={styles.teamName}>{match.homeTeam}</Text>
+                          </View>
+                          <Text style={styles.scoreNumber}>{match.homeScore}</Text>
+                          <Text style={styles.scoreDivider}>x</Text>
+                          <Text style={styles.scoreNumber}>{match.awayScore}</Text>
+                          <View style={[styles.teamBlock, styles.teamBlockRight]}>
+                            <Text style={styles.teamNameRight}>{match.awayTeam}</Text>
+                            {renderTeamBadge(match.awayTeam)}
+                          </View>
+                        </View>
+                        <Text style={styles.venueText}>{match.venue}</Text>
                       </View>
-                      <Text style={styles.scoreNumber}>{match.homeScore}</Text>
-                      <Text style={styles.scoreDivider}>x</Text>
-                      <Text style={styles.scoreNumber}>{match.awayScore}</Text>
-                      <View style={styles.teamBlock}>
-                        <Text style={styles.teamName}>{match.awayTeam}</Text>
-                        <Image source={require("../../assets/images/chape_simbolo.jpg")} style={styles.teamLogo} />
-                      </View>
-                    </View>
-                    <Text style={styles.venueText}>{match.venue}</Text>
+                    );
+                  })
+                ) : (
+                  <View style={styles.emptyMatchesCard}>
+                    <MaterialIcons name="event-busy" size={26} color="#f5f5f0" />
+                    <Text style={styles.feedbackText}>Nenhum jogo encontrado para a Chape nesse período.</Text>
                   </View>
-                ))}
+                )}
               </View>
 
               <View style={styles.tableHeader}>
@@ -241,17 +311,48 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "rgba(12, 90, 42, 0.08)",
+  },
+  scoreCardLive: {
+    borderColor: "rgba(12, 90, 42, 0.45)",
+    shadowColor: "#0c5a2a",
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+  scoreCardUpcoming: {
+    backgroundColor: "rgba(236, 244, 237, 0.98)",
   },
   matchMeta: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  matchStatus: {
+  matchBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "#eaf1eb",
+  },
+  matchBadgeLive: {
+    backgroundColor: "#0c5a2a",
+  },
+  matchBadgeText: {
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: "800",
     color: "#0c5a2a",
     textTransform: "uppercase",
+  },
+  matchBadgeTextLive: {
+    color: "#f5f5f0",
+  },
+  matchStatus: {
+    marginTop: 10,
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#566056",
   },
   matchTime: {
     fontSize: 11,
@@ -270,6 +371,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
+  teamBlockRight: {
+    justifyContent: "flex-end",
+  },
   teamLogo: {
     width: 24,
     height: 24,
@@ -277,11 +381,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#d4ddd2",
   },
+  opponentBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#d4ddd2",
+    backgroundColor: "#f2f5f2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   teamName: {
     flexShrink: 1,
     fontSize: 12,
     fontWeight: "700",
     color: "#253225",
+  },
+  teamNameRight: {
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#253225",
+    textAlign: "right",
   },
   scoreNumber: {
     fontSize: 30,
@@ -298,6 +419,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 11,
     color: "#566056",
+  },
+  emptyMatchesCard: {
+    paddingVertical: 26,
+    paddingHorizontal: 20,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    alignItems: "center",
+    gap: 10,
   },
   tableHeader: {
     marginTop: 24,
