@@ -13,7 +13,6 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -21,6 +20,7 @@ import { AnimatedEnter } from "@/components/animated-enter";
 import { StateCard } from "@/components/state-card";
 import { ChapeTheme } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { getCarteirinhaOverview } from "@/services/carteirinha.service";
 import type { CarteirinhaOverview } from "@/types/carteirinha";
 
@@ -39,7 +39,7 @@ const pages: CardPage[] = [
 ];
 
 export default function CarteirinhaScreen() {
-  const { width } = useWindowDimensions();
+  const layout = useResponsiveLayout();
   const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [data, setData] = useState<CarteirinhaOverview | null>(null);
@@ -129,9 +129,10 @@ export default function CarteirinhaScreen() {
     ],
     [data?.memberSince, data?.planName, data?.status]
   );
-  const slideWidth = width;
-  const cardWidth = width - 48;
-  const isCompact = width < 460;
+  const slideWidth = layout.width;
+  const slidePadding = layout.screenPadding + 4;
+  const cardWidth = Math.max(0, layout.width - slidePadding * 2);
+  const isCompact = layout.isCompact;
 
   function renderCardPage({ item }: ListRenderItemInfo<CardPage>) {
     if (!data) {
@@ -140,8 +141,8 @@ export default function CarteirinhaScreen() {
 
     if (item.side === "front") {
       return (
-        <View style={[styles.slide, { width: slideWidth }]}>
-          <View style={[styles.memberCard, { width: cardWidth }]}>
+        <View style={[styles.slide, { width: slideWidth, paddingHorizontal: slidePadding }]}>
+          <View style={[styles.memberCard, layout.isSmallPhone && styles.memberCardCompact, { width: cardWidth }]}>
             <View style={styles.memberCardGlow} />
 
             <View style={styles.memberHeader}>
@@ -151,10 +152,12 @@ export default function CarteirinhaScreen() {
               <Text style={styles.memberPlan}>{data.planName}</Text>
             </View>
 
-            <View style={styles.memberMain}>
+            <View style={[styles.memberMain, layout.isSmallPhone && styles.memberMainCompact]}>
               <View style={styles.memberInfoColumn}>
                 <Text style={styles.memberLabel}>Nome do sócio</Text>
-                <Text style={styles.memberValue}>{data.memberName}</Text>
+                <Text style={[styles.memberValue, layout.isSmallPhone && styles.memberValueCompact]}>
+                  {data.memberName}
+                </Text>
 
                 <Text style={[styles.memberLabel, styles.fieldSpacing]}>Matrícula</Text>
                 <View style={styles.inlineValueBox}>
@@ -168,7 +171,7 @@ export default function CarteirinhaScreen() {
                 <Text style={styles.memberSmallValue}>{data.memberSince}</Text>
               </View>
 
-              <View style={styles.memberSideColumn}>
+              <View style={[styles.memberSideColumn, layout.isSmallPhone && styles.memberSideColumnCompact]}>
                 <View style={styles.photoWrap}>
                   <Image source={CHAPE_BADGE} style={styles.photoImage} />
                 </View>
@@ -177,7 +180,7 @@ export default function CarteirinhaScreen() {
               </View>
             </View>
 
-            <View style={styles.memberFooter}>
+            <View style={[styles.memberFooter, layout.isSmallPhone && styles.memberFooterCompact]}>
               <View style={styles.qrPreviewBox}>
                 <MaterialIcons name="qr-code-2" size={52} color={ChapeTheme.colors.primaryBright} />
               </View>
@@ -192,15 +195,19 @@ export default function CarteirinhaScreen() {
     }
 
     return (
-      <View style={[styles.slide, { width: slideWidth }]}>
-        <View style={[styles.memberCard, styles.qrCard, { width: cardWidth }]}>
+      <View style={[styles.slide, { width: slideWidth, paddingHorizontal: slidePadding }]}>
+        <View style={[styles.memberCard, styles.qrCard, layout.isSmallPhone && styles.memberCardCompact, { width: cardWidth }]}>
           <View style={styles.memberCardGlow} />
 
-          <Text style={styles.qrTitle}>Validação rápida</Text>
+          <Text style={[styles.qrTitle, layout.isSmallPhone && styles.qrTitleCompact]}>Validação rápida</Text>
           <Text style={styles.qrSubtitle}>Apresente este código para identificação digital.</Text>
 
-          <View style={styles.bigQrBox}>
-            <MaterialIcons name="qr-code-2" size={180} color={ChapeTheme.colors.primaryBright} />
+          <View style={[styles.bigQrBox, layout.isSmallPhone && styles.bigQrBoxCompact]}>
+            <MaterialIcons
+              name="qr-code-2"
+              size={layout.isSmallPhone ? 148 : 180}
+              color={ChapeTheme.colors.primaryBright}
+            />
           </View>
 
           <Text style={styles.qrCodeText}>{data.qrCode}</Text>
@@ -219,7 +226,14 @@ export default function CarteirinhaScreen() {
         <View style={[styles.orb, styles.orbBottom]} />
 
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: layout.topPadding,
+              paddingHorizontal: layout.screenPadding,
+              paddingBottom: layout.bottomPadding,
+            },
+          ]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => void loadCarteirinha(true)} tintColor="#f7f5eb" />
@@ -227,16 +241,18 @@ export default function CarteirinhaScreen() {
         >
           <View style={styles.profilePill}>
             <Image source={USER_AVATAR} style={styles.avatar} />
-            <View>
+            <View style={styles.profileCopy}>
               <Text style={styles.profileEyebrow}>Sócio torcedor</Text>
-              <Text style={styles.profileName}>{user?.name ?? "Torcedor"}</Text>
+              <Text numberOfLines={1} style={styles.profileName}>{user?.name ?? "Torcedor"}</Text>
             </View>
           </View>
 
           <AnimatedEnter delay={40}>
             <View style={styles.heroCard}>
             <Text style={styles.heroEyebrow}>Carteirinha digital</Text>
-            <Text style={styles.heroTitle}>Documento de acesso com leitura mais premium</Text>
+            <Text style={[styles.heroTitle, layout.isSmallPhone && styles.heroTitleCompact]}>
+              Documento de acesso com leitura mais premium
+            </Text>
             <Text style={styles.heroSubtitle}>
               Frente e verso em destaque, informações resumidas e ações organizadas para uso rápido.
             </Text>
@@ -313,7 +329,7 @@ export default function CarteirinhaScreen() {
                   showsHorizontalScrollIndicator={false}
                   getItemLayout={(_, index) => ({ length: slideWidth, offset: slideWidth * index, index })}
                   onMomentumScrollEnd={onMomentumEnd}
-                  style={styles.carousel}
+                  style={[styles.carousel, { marginHorizontal: -layout.screenPadding }]}
                 />
               </AnimatedEnter>
 
@@ -418,12 +434,17 @@ const styles = StyleSheet.create({
   },
   profilePill: {
     alignSelf: "flex-start",
+    maxWidth: "100%",
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     padding: 8,
     borderRadius: ChapeTheme.radii.pill,
     backgroundColor: "rgba(247, 245, 235, 0.92)",
+  },
+  profileCopy: {
+    flexShrink: 1,
+    minWidth: 0,
   },
   avatar: {
     width: 40,
@@ -466,6 +487,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "800",
+  },
+  heroTitleCompact: {
+    fontSize: 24,
+    lineHeight: 30,
   },
   heroSubtitle: {
     marginTop: 10,
@@ -580,6 +605,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#f2f6ec",
     ...ChapeTheme.shadow,
   },
+  memberCardCompact: {
+    minHeight: 0,
+    padding: 18,
+  },
   qrCard: {
     alignItems: "center",
     justifyContent: "center",
@@ -618,6 +647,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 16,
   },
+  memberMainCompact: {
+    flexDirection: "column",
+  },
   memberInfoColumn: {
     flex: 1,
   },
@@ -634,6 +666,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 32,
     fontWeight: "800",
+  },
+  memberValueCompact: {
+    fontSize: 24,
+    lineHeight: 29,
   },
   memberSmallValue: {
     marginTop: 6,
@@ -663,6 +699,12 @@ const styles = StyleSheet.create({
   memberSideColumn: {
     width: 112,
     alignItems: "center",
+  },
+  memberSideColumnCompact: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
   },
   photoWrap: {
     width: 96,
@@ -697,6 +739,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 16,
   },
+  memberFooterCompact: {
+    marginTop: 24,
+    alignItems: "flex-start",
+  },
   qrPreviewBox: {
     width: 92,
     height: 92,
@@ -730,6 +776,10 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textAlign: "center",
   },
+  qrTitleCompact: {
+    fontSize: 24,
+    lineHeight: 30,
+  },
   qrSubtitle: {
     marginTop: 10,
     color: "#536257",
@@ -747,6 +797,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(20, 83, 45, 0.08)",
+  },
+  bigQrBoxCompact: {
+    width: 200,
+    height: 200,
   },
   qrCodeText: {
     marginTop: 22,

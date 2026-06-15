@@ -1,7 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Dimensions,
   FlatList,
   Image,
   ImageBackground,
@@ -19,6 +18,7 @@ import { AnimatedEnter } from "@/components/animated-enter";
 import { StateCard } from "@/components/state-card";
 import { useAuth } from "@/contexts/auth-context";
 import { ChapeTheme } from "@/constants/theme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { getTitulosOverview } from "@/services/titulos.service";
 import type { TitulosOverview, Trophy } from "@/types/titulos";
 
@@ -35,10 +35,6 @@ const TROPHY_ACCENTS: Record<string, string> = {
   "serie-b-2013": "#7bd8ff",
 };
 
-const { width } = Dimensions.get("window");
-const slideWidth = width;
-const contentCardWidth = width - 48;
-
 function getTrophyImage(trophy: Trophy) {
   return TROPHY_IMAGES[trophy.id] ?? CHAPE_BADGE;
 }
@@ -48,6 +44,7 @@ function getTrophyAccent(trophy: Trophy) {
 }
 
 export default function TitulosScreen() {
+  const layout = useResponsiveLayout();
   const { user } = useAuth();
   const [data, setData] = useState<TitulosOverview | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -83,6 +80,9 @@ export default function TitulosScreen() {
 
   const trophies = data?.trophies ?? [];
   const activeTrophy = trophies[currentIndex] ?? null;
+  const slideWidth = layout.width;
+  const slidePadding = layout.screenPadding + 4;
+  const contentCardWidth = Math.max(0, layout.width - slidePadding * 2);
 
   function goTo(nextIndex: number) {
     const boundedIndex = Math.max(0, Math.min(nextIndex, trophies.length - 1));
@@ -110,9 +110,13 @@ export default function TitulosScreen() {
     const accent = getTrophyAccent(item);
 
     return (
-      <View style={styles.slide}>
-        <View style={styles.trophyCard}>
-          <ImageBackground source={getTrophyImage(item)} resizeMode="cover" style={styles.trophyMedia}>
+      <View style={[styles.slide, { width: slideWidth, paddingHorizontal: slidePadding }]}>
+        <View style={[styles.trophyCard, { width: contentCardWidth }]}>
+          <ImageBackground
+            source={getTrophyImage(item)}
+            resizeMode="cover"
+            style={[styles.trophyMedia, layout.isSmallPhone && styles.trophyMediaCompact]}
+          >
             <View style={styles.trophyMediaShade} />
             <View style={[styles.imageTag, { borderColor: `${accent}88` }]}>
               <MaterialIcons name="photo-library" size={14} color={accent} />
@@ -120,7 +124,7 @@ export default function TitulosScreen() {
             </View>
             <View style={styles.imageBottomCopy}>
               <Text style={styles.imageYear}>{item.year}</Text>
-              <Text style={styles.imageTitle}>{item.title}</Text>
+              <Text style={[styles.imageTitle, layout.isSmallPhone && styles.imageTitleCompact]}>{item.title}</Text>
             </View>
           </ImageBackground>
 
@@ -132,7 +136,7 @@ export default function TitulosScreen() {
               <View style={styles.headerLine} />
             </View>
 
-            <Text style={styles.trophyName}>{item.title}</Text>
+            <Text style={[styles.trophyName, layout.isSmallPhone && styles.trophyNameCompact]}>{item.title}</Text>
             <Text style={styles.trophyQuote}>&quot;{item.quote}&quot;</Text>
             <Text style={styles.trophyDescription}>{item.description}</Text>
           </View>
@@ -149,31 +153,37 @@ export default function TitulosScreen() {
         <View style={[styles.orb, styles.orbBottom]} />
 
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: layout.topPadding,
+              paddingBottom: layout.bottomPadding,
+            },
+          ]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => void loadTitulos(true)} tintColor="#f7f5eb" />
           }
         >
-          <View style={styles.headerBar}>
+          <View style={[styles.headerBar, { paddingHorizontal: layout.screenPadding }]}>
             <View style={styles.profilePill}>
               <Image source={USER_AVATAR} style={styles.avatar} />
-              <View>
+              <View style={styles.profileCopy}>
                 <Text style={styles.profileEyebrow}>Galeria alviverde</Text>
-                <Text style={styles.profileName}>{user?.name ?? "Torcedor"}</Text>
+                <Text numberOfLines={1} style={styles.profileName}>{user?.name ?? "Torcedor"}</Text>
               </View>
             </View>
           </View>
 
           <AnimatedEnter delay={40}>
-            <View style={styles.heroCard}>
+            <View style={[styles.heroCard, { marginHorizontal: layout.screenPadding }]}>
             <Text style={styles.heroEyebrow}>Títulos em destaque</Text>
             <Text style={styles.heroTitle}>{data?.clubName ?? "Associação Chapecoense de Futebol"}</Text>
             <Text style={styles.heroSubtitle}>
               Uma vitrine mais editorial para valorizar contexto, imagem e memória de cada conquista.
             </Text>
 
-            <View style={styles.heroFooter}>
+            <View style={[styles.heroFooter, layout.isSmallPhone && styles.heroFooterCompact]}>
               <View>
                 <Text style={styles.heroFooterLabel}>Total exibido</Text>
                 <Text style={styles.heroFooterValue}>{String(trophies.length).padStart(2, "0")} conquistas</Text>
@@ -216,7 +226,7 @@ export default function TitulosScreen() {
           {!loading && !errorMessage ? (
             <>
               {activeTrophy && trophyMeta ? (
-                <AnimatedEnter delay={120} style={styles.highlightStrip}>
+                <AnimatedEnter delay={120} style={[styles.highlightStrip, { marginHorizontal: layout.screenPadding }]}>
                   <View style={[styles.highlightDot, { backgroundColor: trophyMeta.accent }]} />
                   <Text style={styles.highlightText}>
                     Em foco: {activeTrophy.title} {activeTrophy.year}
@@ -321,12 +331,17 @@ const styles = StyleSheet.create({
   },
   profilePill: {
     alignSelf: "flex-start",
+    maxWidth: "100%",
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     padding: 8,
     borderRadius: ChapeTheme.radii.pill,
     backgroundColor: "rgba(247, 245, 235, 0.92)",
+  },
+  profileCopy: {
+    flexShrink: 1,
+    minWidth: 0,
   },
   avatar: {
     width: 40,
@@ -383,6 +398,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-end",
     gap: 12,
+  },
+  heroFooterCompact: {
+    alignItems: "flex-start",
+    flexDirection: "column",
   },
   heroFooterLabel: {
     color: ChapeTheme.colors.textSubtle,
@@ -463,11 +482,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   slide: {
-    width: slideWidth,
     paddingHorizontal: 24,
   },
   trophyCard: {
-    width: contentCardWidth,
     borderRadius: 30,
     overflow: "hidden",
     backgroundColor: "rgba(8, 28, 17, 0.96)",
@@ -479,6 +496,9 @@ const styles = StyleSheet.create({
     height: 320,
     justifyContent: "space-between",
     padding: 18,
+  },
+  trophyMediaCompact: {
+    height: 260,
   },
   trophyMediaShade: {
     ...StyleSheet.absoluteFillObject,
@@ -519,6 +539,10 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     fontWeight: "800",
   },
+  imageTitleCompact: {
+    fontSize: 25,
+    lineHeight: 30,
+  },
   trophyBody: {
     padding: 22,
   },
@@ -549,6 +573,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "800",
+  },
+  trophyNameCompact: {
+    fontSize: 24,
+    lineHeight: 30,
   },
   trophyQuote: {
     marginTop: 10,

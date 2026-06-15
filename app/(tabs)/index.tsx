@@ -1,11 +1,12 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
   ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,18 +17,19 @@ import {
 
 import { ChapeTheme } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 
 const CHAPE_BADGE = require("../../assets/images/chape_badge_official.png");
-const GOOGLE_BADGE = require("../../assets/images/logoGoole.png");
 
 export default function LoginScreen() {
+  const layout = useResponsiveLayout({ hasTabBar: false });
+  const scrollRef = useRef<ScrollView>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"login" | "register">("login");
   const { signIn, signUp } = useAuth();
-  const router = useRouter();
 
   const isRegisterMode = mode === "register";
 
@@ -50,8 +52,6 @@ export default function LoginScreen() {
       } else {
         await signIn({ email: email.trim(), password });
       }
-
-      router.replace("/home");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao autenticar";
       Alert.alert(isRegisterMode ? "Erro no cadastro" : "Erro no login", message);
@@ -64,6 +64,12 @@ export default function LoginScreen() {
     setMode((currentMode) => (currentMode === "login" ? "register" : "login"));
   }
 
+  function keepFormActionsVisible() {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+  }
+
   return (
     <View style={styles.root}>
       <ImageBackground source={CHAPE_BADGE} resizeMode="cover" style={styles.background} imageStyle={styles.bgImage}>
@@ -71,7 +77,21 @@ export default function LoginScreen() {
         <View style={[styles.orb, styles.orbTop]} />
         <View style={[styles.orb, styles.orbBottom]} />
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardView}>
+          <ScrollView
+            ref={scrollRef}
+            automaticallyAdjustKeyboardInsets
+            contentContainerStyle={[
+              styles.content,
+              {
+                paddingTop: layout.topPadding,
+                paddingHorizontal: layout.screenPadding,
+                paddingBottom: layout.bottomPadding,
+              },
+            ]}
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.hero}>
             <View style={styles.brandBadge}>
               <Image source={CHAPE_BADGE} style={styles.logo} />
@@ -81,12 +101,14 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            <Text style={styles.title}>Entre para viver a Chape com mais identidade visual e clareza.</Text>
+            <Text style={[styles.title, layout.isSmallPhone && styles.titleCompact]}>
+              Entre para viver a Chape com mais identidade visual e clareza.
+            </Text>
             <Text style={styles.subtitle}>
               Acesso aos jogos, história, títulos e carteirinha em uma experiência mais consistente.
             </Text>
 
-            <View style={styles.featureRow}>
+            <View style={[styles.featureRow, layout.isSmallPhone && styles.featureRowCompact]}>
               <View style={styles.featureItem}>
                 <MaterialIcons name="emoji-events" size={18} color={ChapeTheme.colors.accent} />
                 <Text style={styles.featureText}>Títulos com imagem</Text>
@@ -120,6 +142,9 @@ export default function LoginScreen() {
                     placeholderTextColor="#7a877d"
                     value={name}
                     onChangeText={setName}
+                    onFocus={keepFormActionsVisible}
+                    returnKeyType="next"
+                    textContentType="name"
                   />
                 </View>
               ) : null}
@@ -133,6 +158,11 @@ export default function LoginScreen() {
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
+                  autoComplete="email"
+                  keyboardType="email-address"
+                  onFocus={keepFormActionsVisible}
+                  returnKeyType="next"
+                  textContentType="emailAddress"
                 />
               </View>
 
@@ -145,6 +175,9 @@ export default function LoginScreen() {
                   secureTextEntry
                   value={password}
                   onChangeText={setPassword}
+                  onFocus={keepFormActionsVisible}
+                  returnKeyType="done"
+                  textContentType={isRegisterMode ? "newPassword" : "password"}
                 />
               </View>
             </View>
@@ -165,18 +198,9 @@ export default function LoginScreen() {
               </Text>
             </TouchableOpacity>
 
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>ou</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <TouchableOpacity style={styles.googleButton} disabled={loading}>
-              <Image source={GOOGLE_BADGE} style={styles.googleIcon} />
-              <Text style={styles.googleText}>Entrar com Google</Text>
-            </TouchableOpacity>
           </View>
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </ImageBackground>
     </View>
   );
@@ -188,6 +212,9 @@ const styles = StyleSheet.create({
     backgroundColor: ChapeTheme.colors.page,
   },
   background: {
+    flex: 1,
+  },
+  keyboardView: {
     flex: 1,
   },
   bgImage: {
@@ -220,6 +247,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 20,
     paddingVertical: 42,
+    width: "100%",
+    maxWidth: 520,
+    alignSelf: "center",
   },
   hero: {
     marginBottom: 22,
@@ -256,6 +286,10 @@ const styles = StyleSheet.create({
     lineHeight: 40,
     fontWeight: "800",
   },
+  titleCompact: {
+    fontSize: 29,
+    lineHeight: 35,
+  },
   subtitle: {
     marginTop: 12,
     color: ChapeTheme.colors.textMuted,
@@ -265,7 +299,11 @@ const styles = StyleSheet.create({
   featureRow: {
     marginTop: 20,
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
+  },
+  featureRowCompact: {
+    flexDirection: "column",
   },
   featureItem: {
     flexDirection: "row",
@@ -363,46 +401,6 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: ChapeTheme.colors.primaryBright,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  dividerRow: {
-    marginTop: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "rgba(20, 83, 45, 0.12)",
-  },
-  dividerText: {
-    color: "#607062",
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1.1,
-  },
-  googleButton: {
-    marginTop: 20,
-    minHeight: 56,
-    borderRadius: ChapeTheme.radii.sm,
-    backgroundColor: "#ffffff",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "rgba(20, 83, 45, 0.08)",
-  },
-  googleIcon: {
-    width: 22,
-    height: 22,
-    resizeMode: "contain",
-  },
-  googleText: {
-    color: "#102015",
     fontSize: 14,
     fontWeight: "700",
   },

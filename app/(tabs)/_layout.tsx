@@ -1,15 +1,36 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs, useSegments } from "expo-router";
 import React from "react";
-import { Platform } from "react-native";
+import { ActivityIndicator, Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useAuth } from "@/contexts/auth-context";
 import { ChapeTheme } from "@/constants/theme";
 
 export default function TabLayout() {
+  const { status, isAuthenticated } = useAuth();
+  const segments = useSegments();
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, Platform.OS === "ios" ? 10 : 6);
+  const currentTab = segments[1] ?? "index";
+  const inLogin = currentTab === "index";
+
+  if (status === "loading") {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: ChapeTheme.colors.page }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated && !inLogin) {
+    return <Redirect href="/" />;
+  }
+
+  if (isAuthenticated && inLogin) {
+    return <Redirect href="/home" />;
+  }
 
   return (
     <Tabs

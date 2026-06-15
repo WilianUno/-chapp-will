@@ -9,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -17,6 +16,7 @@ import { AnimatedEnter } from "@/components/animated-enter";
 import { StateCard } from "@/components/state-card";
 import { ChapeTheme } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { getJogosOverview } from "@/services/jogos.service";
 import type { FeaturedMatch, JogosOverview, RecentForm, Standing } from "@/types/jogos";
 
@@ -24,7 +24,7 @@ const CHAPE_BADGE = require("../../assets/images/chape_badge_official.png");
 const USER_AVATAR = require("../../assets/images/personagem.png");
 
 export default function JogosScreen() {
-  const { width } = useWindowDimensions();
+  const layout = useResponsiveLayout();
   const { user } = useAuth();
   const [data, setData] = useState<JogosOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,7 +103,7 @@ export default function JogosScreen() {
 
   const featuredMatches = useMemo(() => data?.featuredMatches ?? [], [data?.featuredMatches]);
   const standings = data?.standings ?? [];
-  const isCompact = width < 460;
+  const isCompact = layout.isCompact;
   const seasonLabel = new Date(data?.updatedAt ?? Date.now()).getFullYear().toString();
   const leagueLabel = data?.competition ?? "Brasileirão Série A";
   const competitionFilters = useMemo(() => {
@@ -148,7 +148,14 @@ export default function JogosScreen() {
         <View style={[styles.orb, styles.orbBottom]} />
 
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: layout.topPadding,
+              paddingHorizontal: layout.screenPadding,
+              paddingBottom: layout.bottomPadding,
+            },
+          ]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => void loadJogos(true)} tintColor="#f7f5eb" />
@@ -156,16 +163,18 @@ export default function JogosScreen() {
         >
           <View style={styles.profilePill}>
             <Image source={USER_AVATAR} style={styles.avatar} />
-            <View>
+            <View style={styles.profileCopy}>
               <Text style={styles.profileEyebrow}>Central de jogos</Text>
-              <Text style={styles.profileName}>{user?.name ?? "Torcedor"}</Text>
+              <Text numberOfLines={1} style={styles.profileName}>{user?.name ?? "Torcedor"}</Text>
             </View>
           </View>
 
           <AnimatedEnter delay={40}>
             <View style={styles.heroCard}>
             <Text style={styles.heroEyebrow}>Agenda e classificação</Text>
-            <Text style={styles.heroTitle}>{data?.competition ?? "Acompanhe a campanha da Chape"}</Text>
+            <Text style={[styles.heroTitle, layout.isSmallPhone && styles.heroTitleCompact]}>
+              {data?.competition ?? "Acompanhe a campanha da Chape"}
+            </Text>
             <Text style={styles.heroSubtitle}>
               Cards de partidas com leitura mais direta e tabela com hierarquia melhor para acompanhar o momento do clube.
             </Text>
@@ -275,16 +284,20 @@ export default function JogosScreen() {
 
                         <Text style={styles.matchStatus}>{match.status}</Text>
 
-                        <View style={styles.matchScoreRow}>
+                        <View style={[styles.matchScoreRow, layout.isSmallPhone && styles.matchScoreRowCompact]}>
                           <TeamBlock
                             align="left"
                             logo={<TeamBadge source={getTeamBadgeSource(match.homeTeam, match.homeTeamCrest)} />}
                             name={match.homeTeam}
                           />
                           <View style={styles.scoreCenter}>
-                            <Text style={styles.scoreValue}>{match.homeScore}</Text>
+                            <Text style={[styles.scoreValue, layout.isSmallPhone && styles.scoreValueCompact]}>
+                              {match.homeScore}
+                            </Text>
                             <Text style={styles.scoreDivider}>x</Text>
-                            <Text style={styles.scoreValue}>{match.awayScore}</Text>
+                            <Text style={[styles.scoreValue, layout.isSmallPhone && styles.scoreValueCompact]}>
+                              {match.awayScore}
+                            </Text>
                           </View>
                           <TeamBlock
                             align="right"
@@ -521,12 +534,17 @@ const styles = StyleSheet.create({
   },
   profilePill: {
     alignSelf: "flex-start",
+    maxWidth: "100%",
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     padding: 8,
     borderRadius: ChapeTheme.radii.pill,
     backgroundColor: "rgba(247, 245, 235, 0.92)",
+  },
+  profileCopy: {
+    flexShrink: 1,
+    minWidth: 0,
   },
   avatar: {
     width: 40,
@@ -569,6 +587,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "800",
+  },
+  heroTitleCompact: {
+    fontSize: 24,
+    lineHeight: 30,
   },
   heroSubtitle: {
     marginTop: 10,
@@ -767,6 +789,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12,
   },
+  matchScoreRowCompact: {
+    gap: 8,
+  },
   teamBlock: {
     flex: 1,
     alignItems: "center",
@@ -812,6 +837,10 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 38,
     fontWeight: "800",
+  },
+  scoreValueCompact: {
+    fontSize: 30,
+    lineHeight: 34,
   },
   scoreDivider: {
     color: ChapeTheme.colors.textSubtle,

@@ -9,7 +9,6 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -17,6 +16,7 @@ import { AnimatedEnter } from "@/components/animated-enter";
 import { StateCard } from "@/components/state-card";
 import { useAuth } from "@/contexts/auth-context";
 import { ChapeTheme } from "@/constants/theme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { getHistoriaOverview } from "@/services/historia.service";
 import { getJogosOverview } from "@/services/jogos.service";
 import { getTitulosOverview } from "@/services/titulos.service";
@@ -62,7 +62,7 @@ const shortcuts: Shortcut[] = [
 ];
 
 export default function HomeScreen() {
-  const { width } = useWindowDimensions();
+  const layout = useResponsiveLayout();
   const router = useRouter();
   const { signOut, user } = useAuth();
   const [data, setData] = useState<HomeData>({
@@ -122,7 +122,7 @@ export default function HomeScreen() {
 
   const heroMatch = data.jogos?.featuredMatches[0] ?? null;
   const historyHighlight = data.historia?.timeline[0] ?? null;
-  const isCompact = width < 460;
+  const isCompact = layout.isCompact;
 
   const statCards = useMemo(
     () => [
@@ -150,7 +150,14 @@ export default function HomeScreen() {
         <View style={[styles.orb, styles.orbBottom]} />
 
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: layout.topPadding,
+              paddingHorizontal: layout.screenPadding,
+              paddingBottom: layout.bottomPadding,
+            },
+          ]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => void loadHome(true)} tintColor="#f7f5eb" />
@@ -159,9 +166,9 @@ export default function HomeScreen() {
           <View style={styles.topBar}>
             <View style={styles.profilePill}>
               <Image source={USER_AVATAR} style={styles.avatar} />
-              <View>
+              <View style={styles.profileCopy}>
                 <Text style={styles.profileEyebrow}>Nação alviverde</Text>
-                <Text style={styles.profileName}>{user?.name ?? "Torcedor"}</Text>
+                <Text numberOfLines={1} style={styles.profileName}>{user?.name ?? "Torcedor"}</Text>
               </View>
             </View>
 
@@ -177,7 +184,9 @@ export default function HomeScreen() {
               <Text style={styles.heroBadgeText}>App oficial do torcedor</Text>
             </View>
 
-            <Text style={styles.heroTitle}>Vamo, vamo, Chape.</Text>
+            <Text style={[styles.heroTitle, layout.isSmallPhone && styles.heroTitleCompact]}>
+              Vamo, vamo, Chape.
+            </Text>
             <Text style={styles.heroSubtitle}>
               Uma home com cara de clube: mais hierarquia, informação rápida e uma entrada visualmente mais forte.
             </Text>
@@ -357,6 +366,10 @@ const styles = StyleSheet.create({
     borderRadius: ChapeTheme.radii.pill,
     backgroundColor: "rgba(247, 245, 235, 0.92)",
   },
+  profileCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
   avatar: {
     width: 42,
     height: 42,
@@ -416,6 +429,10 @@ const styles = StyleSheet.create({
     fontSize: 36,
     lineHeight: 42,
     fontWeight: "800",
+  },
+  heroTitleCompact: {
+    fontSize: 31,
+    lineHeight: 37,
   },
   heroSubtitle: {
     marginTop: 12,

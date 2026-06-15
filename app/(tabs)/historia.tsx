@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -15,6 +14,7 @@ import { AnimatedEnter } from "@/components/animated-enter";
 import { StateCard } from "@/components/state-card";
 import { ChapeTheme } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { getHistoriaOverview } from "@/services/historia.service";
 import type { HistoriaOverview } from "@/types/historia";
 
@@ -22,7 +22,7 @@ const CHAPE_BADGE = require("../../assets/images/chape_badge_official.png");
 const USER_AVATAR = require("../../assets/images/personagem.png");
 
 export default function HistoriaScreen() {
-  const { width } = useWindowDimensions();
+  const layout = useResponsiveLayout();
   const { user } = useAuth();
   const [data, setData] = useState<HistoriaOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,7 +61,7 @@ export default function HistoriaScreen() {
     ],
     [data?.city, data?.foundedAt, data?.timeline.length]
   );
-  const isCompact = width < 460;
+  const isCompact = layout.isCompact;
 
   return (
     <View style={styles.root}>
@@ -71,7 +71,14 @@ export default function HistoriaScreen() {
         <View style={[styles.orb, styles.orbBottom]} />
 
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: layout.topPadding,
+              paddingHorizontal: layout.screenPadding,
+              paddingBottom: layout.bottomPadding,
+            },
+          ]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => void loadHistoria(true)} tintColor="#f7f5eb" />
@@ -79,19 +86,21 @@ export default function HistoriaScreen() {
         >
           <View style={styles.profilePill}>
             <Image source={USER_AVATAR} style={styles.avatar} />
-            <View>
+            <View style={styles.profileCopy}>
               <Text style={styles.profileEyebrow}>Memória viva</Text>
-              <Text style={styles.profileName}>{user?.name ?? "Torcedor"}</Text>
+              <Text numberOfLines={1} style={styles.profileName}>{user?.name ?? "Torcedor"}</Text>
             </View>
           </View>
 
           <AnimatedEnter delay={40}>
             <View style={styles.heroCard}>
-            <View style={styles.heroTop}>
+              <View style={[styles.heroTop, layout.isSmallPhone && styles.heroTopCompact]}>
               <Image source={CHAPE_BADGE} style={styles.crest} />
               <View style={styles.heroCopy}>
                 <Text style={styles.heroEyebrow}>História da Chape</Text>
-                <Text style={styles.heroTitle}>{data?.clubName ?? "Associação Chapecoense de Futebol"}</Text>
+                <Text style={[styles.heroTitle, layout.isSmallPhone && styles.heroTitleCompact]}>
+                  {data?.clubName ?? "Associação Chapecoense de Futebol"}
+                </Text>
                 <Text style={styles.heroSubtitle}>
                   Uma linha do tempo mais clara, com melhor leitura dos marcos que constroem a identidade alviverde.
                 </Text>
@@ -236,12 +245,17 @@ const styles = StyleSheet.create({
   },
   profilePill: {
     alignSelf: "flex-start",
+    maxWidth: "100%",
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     padding: 8,
     borderRadius: ChapeTheme.radii.pill,
     backgroundColor: "rgba(247, 245, 235, 0.92)",
+  },
+  profileCopy: {
+    flexShrink: 1,
+    minWidth: 0,
   },
   avatar: {
     width: 40,
@@ -275,6 +289,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 16,
   },
+  heroTopCompact: {
+    flexDirection: "column",
+  },
   crest: {
     width: 78,
     height: 78,
@@ -298,6 +315,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "800",
+  },
+  heroTitleCompact: {
+    fontSize: 24,
+    lineHeight: 30,
   },
   heroSubtitle: {
     marginTop: 10,
