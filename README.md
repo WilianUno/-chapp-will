@@ -1,100 +1,149 @@
 # CHApp
 
-Aplicativo mobile da Chapecoense construído com Expo/React Native, com backend Node.js para autenticação.
+Aplicativo mobile da Chapecoense feito com Expo/React Native e uma API Node.js para autenticação e dados das telas principais.
 
-## Status atual
+## O que o projeto tem hoje
 
-- `login` funcionando com API real
-- `cadastro` funcionando com API real
-- sessão persistida com `expo-secure-store`
-- backend com `PostgreSQL + Prisma + JWT`
-- tela `jogos` integrada com API local
-- tela `titulos` integrada com API local
-- tela `historia` integrada com API local
-- tela `carteirinha` integrada com API local
+- Login e cadastro com API real.
+- Sessão persistida no app com `expo-secure-store` no mobile e `localStorage` no web.
+- Backend com `Express`, `PostgreSQL`, `Prisma`, `JWT` e senha criptografada com `bcryptjs`.
+- Tela inicial com dados de história, jogos e títulos.
+- Telas integradas com API: `home`, `jogos`, `titulos`, `historia` e `carteirinha`.
+- Integração com `football-data.org` para buscar jogos, tabela e calendário.
+- Configuração Expo/EAS em `eas.json`.
 
-## Estrutura
+## Tecnologias e ferramentas
 
-- `app/`: app mobile com `expo-router`
-- `backend/`: API de autenticação
-- `docs/PLANO_FINALIZACAO.md`: roadmap e pendências do projeto
+### App mobile
+
+- Expo `~54`
+- React `19`
+- React Native `0.81`
+- Expo Router
+- React Navigation
+- TypeScript
+- Expo Secure Store
+- Expo Haptics, Clipboard, Image, Splash Screen, Status Bar e System UI
+- `@expo/vector-icons` com Material Icons
+- ESLint com `eslint-config-expo`
+
+### Backend
+
+- Node.js `20+`
+- Express
+- TypeScript
+- TSX em desenvolvimento
+- PostgreSQL `16` via Docker Compose
+- Prisma ORM
+- JWT com `jsonwebtoken`
+- Criptografia de senha com `bcryptjs`
+- CORS e dotenv
+
+## Estrutura do projeto
+
+```txt
+.
+├── app/                    # Rotas e telas do Expo Router
+├── assets/                 # Imagens, icones e assets do app
+├── components/             # Componentes reutilizaveis do app
+├── constants/              # Tema e constantes visuais
+├── contexts/               # Contexto de autenticacao
+├── hooks/                  # Hooks reutilizaveis
+├── services/               # Cliente HTTP e services do app
+├── types/                  # Tipos TypeScript do app
+├── backend/                # API Node.js/Express
+│   ├── prisma/             # Schema Prisma
+│   ├── src/                # Codigo fonte da API
+│   └── docker-compose.yml  # PostgreSQL local
+└── docs/                   # Documentacao complementar
+```
 
 ## Requisitos
 
-- Node 20+
+- Node.js 20 ou superior
 - npm
-- Docker
+- Docker e Docker Compose
+- Expo Go no celular, Android Emulator ou iOS Simulator para testar o app mobile
+- Conta/token da `football-data.org` para dados reais de jogos
 
-## Setup do backend
+## Setup rapido
 
-1. Entre em `backend/`
-2. Copie `backend/.env.example` para `backend/.env`
-3. Gere um `JWT_SECRET` forte:
+Rode o backend em um terminal e o app em outro.
 
-```bash
-openssl rand -hex 32
-```
-
-4. Coloque o valor em `backend/.env`
-5. Configure `FOOTBALL_DATA_TOKEN` em `backend/.env` com sua chave da `football-data.org`
-6. Suba o banco:
+### 1. Backend
 
 ```bash
 cd backend
-docker compose up -d
-```
-
-7. Instale dependências e prepare o Prisma:
-
-```bash
+cp .env.example .env
 npm install
+docker compose up -d
 npm run prisma:generate
 npm run prisma:push
-```
-
-8. Inicie a API:
-
-```bash
 npm run dev
 ```
 
-API local padrão:
+API local padrao:
 
 ```txt
 http://localhost:3333
 ```
 
-## Setup do app
-
-1. Na raiz do projeto, copie `.env.example` para `.env`
-2. Ajuste `EXPO_PUBLIC_API_BASE_URL` conforme o ambiente de teste
-3. Instale dependências:
+Depois de copiar `backend/.env.example`, troque o `JWT_SECRET` por um valor forte:
 
 ```bash
-npm install
+openssl rand -hex 32
 ```
 
-4. Inicie o app:
+Exemplo de `backend/.env` para desenvolvimento local:
+
+```env
+PORT=3333
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/chapp?schema=public"
+JWT_SECRET="cole-aqui-o-valor-gerado"
+JWT_EXPIRES_IN="7d"
+FOOTBALL_DATA_BASE_URL="https://api.football-data.org/v4"
+FOOTBALL_DATA_TOKEN="seu-token-do-football-data"
+FOOTBALL_DATA_COMPETITION_CODE="BSA"
+FOOTBALL_DATA_TEAM_NAME="Chapecoense"
+```
+
+Observacao: o Docker Compose publica o Postgres em `localhost:5433`. Por isso o `DATABASE_URL` local usa a porta `5433`, mesmo o container usando `5432` internamente.
+
+### 2. App
+
+Na raiz do projeto:
 
 ```bash
+cp .env.example .env
+npm install
 npm start
 ```
 
-## URL da API por ambiente
+Com o Expo aberto, escolha onde rodar:
 
-Use `EXPO_PUBLIC_API_BASE_URL` conforme onde o app estiver rodando:
+- `a` para Android
+- `i` para iOS
+- `w` para web
+- ler o QR Code pelo Expo Go no celular
 
-- Web no mesmo computador:
-  - `http://localhost:3333`
-- Android Emulator:
-  - `http://10.0.2.2:3333`
-- iOS Simulator:
-  - `http://localhost:3333`
-- Expo Go no celular:
-  - `http://IP_DA_SUA_MAQUINA:3333`
-  - exemplo: `http://192.168.2.19:3333`
+## Variaveis de ambiente do app
 
-Exemplo de `.env` na raiz:
+Arquivo: `.env`
+
+```env
+EXPO_PUBLIC_API_BASE_URL=http://localhost:3333
+EXPO_PUBLIC_AUTH_LOGIN_PATH=/auth/login
+EXPO_PUBLIC_AUTH_REGISTER_PATH=/auth/register
+```
+
+Use `EXPO_PUBLIC_API_BASE_URL` conforme o ambiente:
+
+- Web no mesmo computador: `http://localhost:3333`
+- Android Emulator: `http://10.0.2.2:3333`
+- iOS Simulator: `http://localhost:3333`
+- Expo Go no celular: `http://IP_DA_SUA_MAQUINA:3333`
+
+Exemplo para Expo Go no celular:
 
 ```env
 EXPO_PUBLIC_API_BASE_URL=http://192.168.2.19:3333
@@ -102,37 +151,9 @@ EXPO_PUBLIC_AUTH_LOGIN_PATH=/auth/login
 EXPO_PUBLIC_AUTH_REGISTER_PATH=/auth/register
 ```
 
-## Como testar autenticação
+O cliente HTTP tenta ajustar automaticamente `localhost` para o host correto em alguns cenarios de desenvolvimento, mas para Expo Go o mais confiavel e usar o IP da maquina.
 
-Com backend rodando, você pode criar usuário pela API:
-
-```bash
-curl -X POST http://localhost:3333/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Teste","email":"teste@chapp.com","password":"123456"}'
-```
-
-Ou criar direto pela interface do app em `Criar uma Conta`.
-
-Login de teste:
-
-```txt
-email: teste@chapp.com
-senha: 123456
-```
-
-## Endpoints atuais
-
-- `POST /auth/register`
-- `POST /auth/login`
-- `GET /auth/me`
-- `GET /jogos/overview`
-- `GET /titulos/overview`
-- `GET /historia/overview`
-- `GET /carteirinha/overview`
-- `GET /health`
-
-## Comandos úteis
+## Comandos uteis
 
 Na raiz do app:
 
@@ -149,31 +170,107 @@ No backend:
 ```bash
 npm run dev
 npm run build
+npm start
 npm run prisma:generate
 npm run prisma:push
+npm run prisma:migrate
 ```
 
-## Documentação complementar
+Docker do banco:
 
-- [Plano de Finalização](/home/wilian/Documents/-chapp/docs/PLANO_FINALIZACAO.md)
-- [README do Backend](/home/wilian/Documents/-chapp/backend/README.md)
+```bash
+cd backend
+docker compose up -d
+docker compose down
+```
+
+## Endpoints atuais
+
+Endpoints publicos:
+
+- `GET /health`
+- `POST /auth/register`
+- `POST /auth/login`
+
+Endpoints autenticados com `Authorization: Bearer <token>`:
+
+- `GET /auth/me`
+- `GET /jogos/overview`
+- `GET /titulos/overview`
+- `GET /historia/overview`
+- `GET /carteirinha/overview`
+
+## Como testar a autenticacao
+
+Com o backend rodando, crie um usuario pela API:
+
+```bash
+curl -X POST http://localhost:3333/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Teste","email":"teste@chapp.com","password":"123456"}'
+```
+
+Ou crie direto pelo app em `Criar uma conta`.
+
+Depois faca login com:
+
+```txt
+email: teste@chapp.com
+senha: 123456
+```
+
+Para testar um endpoint autenticado via terminal:
+
+```bash
+TOKEN="cole-o-token-retornado-no-login"
+curl http://localhost:3333/auth/me \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 ## Jogos da Chape
 
-`GET /jogos/overview` agora busca dados reais da `football-data.org` no backend.
+`GET /jogos/overview` busca dados reais da `football-data.org` no backend.
 
-Variáveis relevantes em `backend/.env`:
+Variaveis relevantes em `backend/.env`:
 
 ```env
-FOOTBALL_DATA_BASE_URL=https://api.football-data.org/v4
-FOOTBALL_DATA_TOKEN=seu-token
-FOOTBALL_DATA_COMPETITION_CODE=BSA
-FOOTBALL_DATA_TEAM_NAME=Chapecoense
+FOOTBALL_DATA_BASE_URL="https://api.football-data.org/v4"
+FOOTBALL_DATA_TOKEN="seu-token"
+FOOTBALL_DATA_COMPETITION_CODE="BSA"
+FOOTBALL_DATA_TEAM_NAME="Chapecoense"
 ```
 
 Defaults usados pelo projeto:
 
-- `FOOTBALL_DATA_COMPETITION_CODE=BSA` para Série A
+- `FOOTBALL_DATA_COMPETITION_CODE=BSA`
 - `FOOTBALL_DATA_TEAM_NAME=Chapecoense`
 
-No plano free do `football-data.org`, os jogos em andamento podem ter atraso nos placares. Ainda assim, o backend retorna últimos jogos, próximos jogos e tabela reais da competição.
+No plano free da `football-data.org`, jogos em andamento podem ter atraso nos placares. O backend ainda retorna ultimos jogos, proximos jogos e tabela da competicao.
+
+## Build com EAS
+
+O arquivo `eas.json` ja possui perfis de build:
+
+- `development`: build com development client.
+- `preview`: build interno Android em APK.
+- `production`: build de producao com `autoIncrement`.
+
+Exemplo:
+
+```bash
+npx eas build --profile preview --platform android
+```
+
+Antes de gerar build para celular real, revise o `EXPO_PUBLIC_API_BASE_URL` do perfil para apontar para uma API acessivel pelo aparelho. `localhost` dentro do app nao aponta para o seu computador em builds instalados no telefone.
+
+## Documentacao complementar
+
+- [Plano de Finalizacao](docs/PLANO_FINALIZACAO.md)
+- [README do Backend](backend/README.md)
+
+## Observacoes para compartilhar o projeto
+
+- Nao envie os arquivos `.env` reais. Eles ficam ignorados pelo Git.
+- Envie os `.env.example` e explique quais valores precisam ser preenchidos.
+- Para outra pessoa rodar tudo localmente, ela precisa instalar dependencias na raiz e dentro de `backend/`.
+- Se a porta `5433` ja estiver em uso, altere a porta no `backend/docker-compose.yml` e ajuste o `DATABASE_URL`.

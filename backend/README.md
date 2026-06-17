@@ -1,9 +1,22 @@
 # CHApp Backend
 
-Backend inicial para autenticação com PostgreSQL + Prisma + JWT.
+API Node.js/Express do CHApp. Ela cuida de autenticação, sessão via JWT e dos dados consumidos pelas telas de jogos, títulos, história e carteirinha.
+
+## Tecnologias
+
+- Node.js 20+
+- Express
+- TypeScript
+- TSX para desenvolvimento
+- PostgreSQL 16 via Docker Compose
+- Prisma ORM
+- JWT com `jsonwebtoken`
+- Hash de senha com `bcryptjs`
+- CORS e dotenv
 
 ## Endpoints implementados
 
+- `GET /health`
 - `POST /auth/register`
 - `POST /auth/login`
 - `GET /auth/me` (Bearer token)
@@ -11,12 +24,12 @@ Backend inicial para autenticação com PostgreSQL + Prisma + JWT.
 - `GET /titulos/overview` (Bearer token)
 - `GET /historia/overview` (Bearer token)
 - `GET /carteirinha/overview` (Bearer token)
-- `GET /health`
 
 ## Requisitos
 
 - Node 20+
 - Docker (opcional, recomendado para PostgreSQL local)
+- npm
 
 ## Setup
 
@@ -37,6 +50,27 @@ Backend inicial para autenticação com PostgreSQL + Prisma + JWT.
    - `npm run dev`
 
 API local padrão: `http://localhost:3333`
+
+O `docker-compose.yml` publica o Postgres local em `localhost:5433`. Portanto, para rodar a API fora do Docker, use:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/chapp?schema=public"
+```
+
+## Variáveis de ambiente
+
+Arquivo: `backend/.env`
+
+```env
+PORT=3333
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/chapp?schema=public"
+JWT_SECRET="seu-valor-gerado"
+JWT_EXPIRES_IN="7d"
+FOOTBALL_DATA_BASE_URL="https://api.football-data.org/v4"
+FOOTBALL_DATA_TOKEN="seu-token-do-football-data"
+FOOTBALL_DATA_COMPETITION_CODE="BSA"
+FOOTBALL_DATA_TEAM_NAME="Chapecoense"
+```
 
 ## JWT secret
 
@@ -91,3 +125,14 @@ FOOTBALL_DATA_TEAM_NAME="Chapecoense"
 O backend aceita cadastro com `POST /auth/register`.
 
 O app mobile agora tambem consegue criar conta pela tela de autenticacao, desde que `EXPO_PUBLIC_API_BASE_URL` esteja apontando para a API correta.
+
+## Comandos úteis
+
+```bash
+npm run dev
+npm run build
+npm start
+npm run prisma:generate
+npm run prisma:push
+npm run prisma:migrate
+```
